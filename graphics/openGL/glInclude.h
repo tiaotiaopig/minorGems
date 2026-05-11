@@ -19,8 +19,11 @@
 #define GL_SOURCE0_RGB GL_SRC0_RGB
 #define GL_SOURCE0_ALPHA GL_SRC0_ALPHA
 
-#ifndef __ANDROID__
-// Raspbian 还能用 mesa 提供的 glu
+#ifdef __ANDROID__
+// Android NDK does not provide libGLU; use the built-in minimal replacement
+#include "glu_android.h"
+#else
+// Desktop (e.g. Raspbian): use mesa-provided glu
 #include <GL/glu.h>
 #endif
 
