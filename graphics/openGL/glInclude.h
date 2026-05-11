@@ -4,12 +4,12 @@
 #include <OpenGL/glu.h>
 
 
-#elif defined(RASPBIAN)
+#elif defined(RASPBIAN) || defined(__ANDROID__)
 
-// GL ES
+// GL ES 1.x (与 Raspbian 共用代码路径)
 #include <GLES/gl.h>
 
-// some things that aren't defined in GLES or have different names
+// 一些在 GLES 中名字不同或缺失的常量/函数
 #define GLdouble     GLfloat
 #define GL_CLAMP     GL_CLAMP_TO_EDGE
 #define glClearDepth glClearDepthf
@@ -19,8 +19,10 @@
 #define GL_SOURCE0_RGB GL_SRC0_RGB
 #define GL_SOURCE0_ALPHA GL_SRC0_ALPHA
 
-// regular mesa-supplied GLU should work
+#ifndef __ANDROID__
+// Raspbian 还能用 mesa 提供的 glu
 #include <GL/glu.h>
+#endif
 
 
 
