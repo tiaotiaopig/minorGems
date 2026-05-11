@@ -1128,7 +1128,7 @@ inline uint64_t File::readFileUInt64Contents( uint64_t inDefaultValue ) {
 
 
 
-inline unsigned char *File::readFileContents( int *outLength, 
+inline unsigned char *File::readFileContents( int *outLength,
                                               char inTextMode ) {
 
     if( exists() ) {
@@ -1160,6 +1160,24 @@ inline unsigned char *File::readFileContents( int *outLength,
             }
         }
     else {
+#ifdef __ANDROID__
+        // Android 回退：普通文件不存在时尝试从 APK assets/ 读取
+        extern "C" unsigned char* minorGemsAndroid_readAsset(const char*, int*);
+        char* full = getFullFileName();
+        if( full ) {
+            int bytes = 0;
+            unsigned char* assetBuf = minorGemsAndroid_readAsset( full, &bytes );
+            delete [] full;
+            if( assetBuf ) {
+                // 转成 minorGems 期望的 new[] 内存（caller 用 delete[]）
+                unsigned char* result = new unsigned char[ bytes ];
+                memcpy( result, assetBuf, bytes );
+                free( assetBuf );
+                if( outLength ) *outLength = bytes;
+                return result;
+                }
+            }
+#endif
         return NULL;
         }
 
