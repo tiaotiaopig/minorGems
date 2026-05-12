@@ -11,10 +11,10 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-// minorGems 游戏音频接口（实际签名来自 game/game.h）
+// minorGems 游戏音频接口（实际签名来自 game/game.h，C++ 链接）
 typedef uint8_t Uint8;
-extern "C" void getSoundSamples(Uint8* inBuffer, int inLengthToFillInBytes);
-extern "C" int getSampleRate();
+void getSoundSamples(Uint8* inBuffer, int inLengthToFillInBytes);
+int getSampleRate();
 
 namespace {
     SLObjectItf engineObj = nullptr;
