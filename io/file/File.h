@@ -1056,6 +1056,10 @@ inline char *File::getAbsoluteFileName( int *outLength ) {
 #include "minorGems/io/file/FileInputStream.h"
 #include "minorGems/io/file/FileOutputStream.h"
 
+// Android asset 读取函数声明（必须在文件作用域，不能在函数体内）
+#ifdef __ANDROID__
+extern "C" unsigned char* minorGemsAndroid_readAsset(const char*, int*);
+#endif
 
 
 inline char *File::readFileContents() {
@@ -1162,7 +1166,7 @@ inline unsigned char *File::readFileContents( int *outLength,
     else {
 #ifdef __ANDROID__
         // Android 回退：普通文件不存在时尝试从 APK assets/ 读取
-        extern "C" unsigned char* minorGemsAndroid_readAsset(const char*, int*);
+        // 注意：minorGemsAndroid_readAsset 已在文件作用域声明（见上方）
         char* full = getFullFileName();
         if( full ) {
             int bytes = 0;
