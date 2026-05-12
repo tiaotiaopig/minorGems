@@ -17,16 +17,14 @@
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SimpleVector.h"
 
-// minorGems 游戏侧接口（实际签名来自 game/game.h）
-extern "C" {
-    void initFrameDrawer(int inWidth, int inHeight, int inTargetFrameRate,
-                         const char* inCustomRecordedGameData,
-                         char inPlayingBack);
-    void freeFrameDrawer();
-    void drawFrame(char inUpdate);
-    void initDrawString(int inWidth, int inHeight);
-    void freeDrawString();
-}
+// minorGems 游戏侧接口（实际签名来自 game/game.h，C++ 链接）
+void initFrameDrawer(int inWidth, int inHeight, int inTargetFrameRate,
+                     const char* inCustomRecordedGameData,
+                     char inPlayingBack);
+void freeFrameDrawer();
+void drawFrame(char inUpdate);
+void initDrawString(int inWidth, int inHeight);
+void freeDrawString();
 
 namespace minorGemsAndroid {
 
