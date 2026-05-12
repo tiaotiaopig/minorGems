@@ -140,12 +140,18 @@
 
 
 
+// Android asset 读取函数（必须在 class File 声明之前，因为 inline exists() 要用）
+#ifdef __ANDROID__
+extern "C" unsigned char* minorGemsAndroid_readAsset(const char*, int*);
+#endif
+
+
 /**
  * File interface.  Provides access to information about a
  * file.
  *
  * @author Jason Rohrer
- */ 
+ */
 class File {
 
 	public:
@@ -817,22 +823,35 @@ inline File *File::getParentDirectory() {
 		
 inline char File::exists() {
 	struct stat fileInfo;
-	
+
 	// get full file name
 	int length;
 	char *stringName = getFullFileName( &length );
-	
+
 	int statError = stat( stringName, &fileInfo );
-	
-	delete [] stringName;
-	
+
 	if( statError == 0 ) {
+		delete [] stringName;
 		return true;
 		}
-	else {
-		// file does not exist
+#ifdef __ANDROID__
+	// Android 回退：普通文件不存在时检查 APK assets/ 是否有
+	// minorGemsAndroid_readAsset 已在文件作用域声明
+	{
+		int bytes = 0;
+		unsigned char* assetBuf = minorGemsAndroid_readAsset( stringName, &bytes );
+		delete [] stringName;
+		if( assetBuf ) {
+			free( assetBuf );
+			return true;
+			}
 		return false;
 		}
+#else
+	delete [] stringName;
+	// file does not exist
+	return false;
+#endif
 	}
 
 
@@ -1135,7 +1154,17 @@ inline uint64_t File::readFileUInt64Contents( uint64_t inDefaultValue ) {
 inline unsigned char *File::readFileContents( int *outLength,
                                               char inTextMode ) {
 
-    if( exists() ) {
+    // 先尝试用 stat 检查物理文件（不通过 exists()，避免 AAsset 干扰）
+    struct stat fileInfo;
+    int statErr;
+    {
+        int nameLen;
+        char *stringName = getFullFileName( &nameLen );
+        statErr = stat( stringName, &fileInfo );
+        delete [] stringName;
+    }
+
+    if( statErr == 0 ) {
         int length = getLength();
 
         unsigned char *returnData = new unsigned char[ length ];
