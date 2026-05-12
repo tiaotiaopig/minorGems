@@ -16,6 +16,8 @@
 #include "minorGems/network/HostAddress.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SimpleVector.h"
+#include "minorGems/util/log/AppLog.h"
+#include "minorGems/util/log/AndroidLog.h"
 
 // minorGems 游戏侧接口（实际签名来自 game/game.h，C++ 链接）
 void initFrameDrawer(int inWidth, int inHeight, int inTargetFrameRate,
@@ -29,6 +31,10 @@ void freeDrawString();
 namespace minorGemsAndroid {
 
 void platformInit(int width, int height, int targetFrameRate) {
+    // 把 AppLog 转发到 Android logcat（Tag: OneLifeGame / OneLife:<loggerName>）
+    AppLog::setLog(new AndroidLog());
+    AppLog::setLoggingLevel(Log::TRACE_LEVEL);  // 最详细级别，让 gameSource 的输出都能看到
+
     __android_log_print(ANDROID_LOG_INFO, "OneLife",
         "platformInit %dx%d @%dfps", width, height, targetFrameRate);
 
