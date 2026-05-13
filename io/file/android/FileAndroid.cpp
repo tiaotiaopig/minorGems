@@ -38,7 +38,16 @@ unsigned char* minorGemsAndroid_readAsset(const char* relativePath, int* outByte
     const char* p = relativePath;
     while (*p == '.' || *p == '/') p++;
 
+    // 先尝试直接路径
     AAsset* a = AAssetManager_open(gMgr, p, AASSET_MODE_BUFFER);
+
+    // 如果失败且路径不含 '/'，尝试 graphics/ 前缀（gameSource UI 图标）
+    if (!a && strchr(p, '/') == nullptr) {
+        char graphicsPath[512];
+        snprintf(graphicsPath, sizeof(graphicsPath), "graphics/%s", p);
+        a = AAssetManager_open(gMgr, graphicsPath, AASSET_MODE_BUFFER);
+    }
+
     if (!a) return nullptr;
 
     off_t len = AAsset_getLength(a);
