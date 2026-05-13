@@ -38,14 +38,8 @@ namespace minorGemsAndroid {
 static int gPhysicalWidth = 0;
 static int gPhysicalHeight = 0;
 
-// 逻辑分辨率（gameSource 绘制坐标系，OneLife 默认 1280×720）
-static int gLogicalWidth = 0;
-static int gLogicalHeight = 0;
-
 int getPhysicalWidth()  { return gPhysicalWidth; }
 int getPhysicalHeight() { return gPhysicalHeight; }
-int getLogicalWidth()   { return gLogicalWidth; }
-int getLogicalHeight()  { return gLogicalHeight; }
 
 void platformInit(int width, int height, int targetFrameRate) {
     // 把 AppLog 转发到 Android logcat（Tag: OneLifeGame / OneLife:<loggerName>）
@@ -55,36 +49,12 @@ void platformInit(int width, int height, int targetFrameRate) {
     gPhysicalWidth  = width;
     gPhysicalHeight = height;
 
-    // 决定逻辑分辨率：如果游戏侧 doesOverrideGameImageSize() 返回 true，
-    // 用 gameSource 提供的尺寸（OneLife 是 1280×720），否则用物理像素
-    int logicalW = width;
-    int logicalH = height;
-    if (doesOverrideGameImageSize()) {
-        getGameImageSize(&logicalW, &logicalH);
-
-        // 按物理屏宽高比调整逻辑高度，避免拉伸
-        // 例：物理 640×320（2:1），逻辑期望 1280×720（16:9），
-        // 调整为 1280×640（与物理比例一致），letterbox 由 GL viewport 自动处理
-        double physicalRatio = (double)width / (double)height;
-        double logicalRatio  = (double)logicalW / (double)logicalH;
-
-        if (physicalRatio > logicalRatio) {
-            // 物理屏比逻辑更宽 → 拉宽逻辑（保持高度）
-            logicalW = (int)(logicalH * physicalRatio + 0.5);
-        } else {
-            // 物理屏比逻辑更高 → 拉高逻辑（保持宽度）
-            logicalH = (int)(logicalW / physicalRatio + 0.5);
-        }
-    }
-    gLogicalWidth  = logicalW;
-    gLogicalHeight = logicalH;
-
     __android_log_print(ANDROID_LOG_INFO, "OneLife",
-        "platformInit physical=%dx%d logical=%dx%d @%dfps",
-        width, height, logicalW, logicalH, targetFrameRate);
+        "platformInit %dx%d @%dfps", width, height, targetFrameRate);
 
-    initDrawString(logicalW, logicalH);
-    initFrameDrawer(logicalW, logicalH, targetFrameRate, "", false);
+    // 暂时用物理像素初始化（Task 3.3 DPI 适配导致黑屏，先回退）
+    initDrawString(width, height);
+    initFrameDrawer(width, height, targetFrameRate, "", false);
 }
 
 void platformTick() {
