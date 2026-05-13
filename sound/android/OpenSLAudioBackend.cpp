@@ -42,13 +42,47 @@ namespace {
 }
 
 extern "C" int minorGemsAndroid_audioStart() {
-    SLresult r = slCreateEngine(&engineObj, 0, nullptr, 0, nullptr, nullptr);
-    if (r != SL_RESULT_SUCCESS) { LOGE("slCreateEngine failed"); return -1; }
-    (*engineObj)->Realize(engineObj, SL_BOOLEAN_FALSE);
-    (*engineObj)->GetInterface(engineObj, SL_IID_ENGINE, &engineItf);
+    LOGI("Initializing OpenSL ES audio...");
 
-    (*engineItf)->CreateOutputMix(engineItf, &mixObj, 0, nullptr, nullptr);
-    (*mixObj)->Realize(mixObj, SL_BOOLEAN_FALSE);
+    SLresult r = slCreateEngine(&engineObj, 0, nullptr, 0, nullptr, nullptr);
+    if (r != SL_RESULT_SUCCESS) {
+        LOGE("slCreateEngine failed (result=%d) — audio disabled", (int)r);
+        return -1;
+    }
+
+    r = (*engineObj)->Realize(engineObj, SL_BOOLEAN_FALSE);
+    if (r != SL_RESULT_SUCCESS) {
+        LOGE("Engine Realize failed (result=%d) — audio disabled", (int)r);
+        (*engineObj)->Destroy(engineObj);
+        engineObj = nullptr;
+        return -1;
+    }
+
+    r = (*engineObj)->GetInterface(engineObj, SL_IID_ENGINE, &engineItf);
+    if (r != SL_RESULT_SUCCESS) {
+        LOGE("GetInterface(ENGINE) failed (result=%d) — audio disabled", (int)r);
+        (*engineObj)->Destroy(engineObj);
+        engineObj = nullptr;
+        return -1;
+    }
+
+    r = (*engineItf)->CreateOutputMix(engineItf, &mixObj, 0, nullptr, nullptr);
+    if (r != SL_RESULT_SUCCESS) {
+        LOGE("CreateOutputMix failed (result=%d) — audio disabled", (int)r);
+        (*engineObj)->Destroy(engineObj);
+        engineObj = nullptr;
+        return -1;
+    }
+
+    r = (*mixObj)->Realize(mixObj, SL_BOOLEAN_FALSE);
+    if (r != SL_RESULT_SUCCESS) {
+        LOGE("OutputMix Realize failed (result=%d) — audio disabled", (int)r);
+        (*mixObj)->Destroy(mixObj);
+        (*engineObj)->Destroy(engineObj);
+        mixObj = nullptr;
+        engineObj = nullptr;
+        return -1;
+    }
 
     int rate = getSampleRate();
     SLDataLocator_AndroidSimpleBufferQueue locBQ = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2 };
@@ -64,8 +98,28 @@ extern "C" int minorGemsAndroid_audioStart() {
 
     const SLInterfaceID ids[] = { SL_IID_BUFFERQUEUE };
     const SLboolean req[] = { SL_BOOLEAN_TRUE };
-    (*engineItf)->CreateAudioPlayer(engineItf, &playerObj, &src, &sink, 1, ids, req);
-    (*playerObj)->Realize(playerObj, SL_BOOLEAN_FALSE);
+    r = (*engineItf)->CreateAudioPlayer(engineItf, &playerObj, &src, &sink, 1, ids, req);
+    if (r != SL_RESULT_SUCCESS) {
+        LOGE("CreateAudioPlayer failed (result=%d) — audio disabled", (int)r);
+        (*mixObj)->Destroy(mixObj);
+        (*engineObj)->Destroy(engineObj);
+        mixObj = nullptr;
+        engineObj = nullptr;
+        return -1;
+    }
+
+    r = (*playerObj)->Realize(playerObj, SL_BOOLEAN_FALSE);
+    if (r != SL_RESULT_SUCCESS) {
+        LOGE("AudioPlayer Realize failed (result=%d) — audio disabled", (int)r);
+        (*playerObj)->Destroy(playerObj);
+        (*mixObj)->Destroy(mixObj);
+        (*engineObj)->Destroy(engineObj);
+        playerObj = nullptr;
+        mixObj = nullptr;
+        engineObj = nullptr;
+        return -1;
+    }
+
     (*playerObj)->GetInterface(playerObj, SL_IID_PLAY, &playItf);
     (*playerObj)->GetInterface(playerObj, SL_IID_BUFFERQUEUE, &bqItf);
     (*bqItf)->RegisterCallback(bqItf, bqCallback, nullptr);
@@ -73,7 +127,7 @@ extern "C" int minorGemsAndroid_audioStart() {
 
     fillAndEnqueue();
     fillAndEnqueue();
-    LOGI("OpenSL ES started: %d Hz stereo", rate);
+    LOGI("✓ OpenSL ES started: %d Hz stereo", rate);
     return 0;
 }
 
