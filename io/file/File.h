@@ -111,6 +111,10 @@
 
 #include "minorGems/common.h"
 
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
+
 
 
 #ifndef FILE_CLASS_INCLUDED
@@ -143,6 +147,8 @@
 // Android asset 读取函数（必须在 class File 声明之前，因为 inline exists() 要用）
 #ifdef __ANDROID__
 extern "C" unsigned char* minorGemsAndroid_readAsset(const char*, int*);
+extern "C" int minorGemsAndroid_isAssetDirectory(const char*);
+extern "C" char** minorGemsAndroid_listAssetDirectory(const char*, int*);
 #endif
 
 
@@ -509,13 +515,13 @@ inline long File::getLength() {
 
 inline char File::isDirectory() {
 	struct stat fileInfo;
-	
+
 	// get full file name
 	int length;
 	char *stringName = getFullFileName( &length );
-	
+
 	int statError = stat( stringName, &fileInfo );
-	
+
 	delete [] stringName;
 
         if( statError == -1 ) {
@@ -836,7 +842,11 @@ inline char File::exists() {
 		}
 #ifdef __ANDROID__
 	// Android 回退：普通文件不存在时检查 APK assets/ 是否有
-	// minorGemsAndroid_readAsset 已在文件作用域声明
+	// 注意：这里只检查文件，不检查目录。原因：
+	// - binFolderCache 用 fopen 读 cache.fcz，AAsset 文件 fopen 失败
+	// - 如果 exists() 对 AAsset 文件返回 true，会让 binFolderCache 走错分支
+	// 暂时只对实际文件系统中的文件返回 true，AAsset 中的资源文件
+	// 应该通过 readFileContents 在调用层处理
 	{
 		int bytes = 0;
 		unsigned char* assetBuf = minorGemsAndroid_readAsset( stringName, &bytes );

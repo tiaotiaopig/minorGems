@@ -59,6 +59,60 @@ unsigned char* minorGemsAndroid_readAsset(const char* relativePath, int* outByte
     return buf;
 }
 
+// 检测 AAsset 中是否存在指定目录（通过 AAssetManager_openDir）
+// 返回 1 表示是目录，0 表示不是
+int minorGemsAndroid_isAssetDirectory(const char* relativePath) {
+    if (!gMgr || !relativePath) return 0;
+    const char* p = relativePath;
+    while (*p == '.' || *p == '/') p++;
+
+    AAssetDir* dir = AAssetManager_openDir(gMgr, p);
+    if (!dir) return 0;
+
+    // AAssetManager_openDir 即使路径不存在也会返回非 NULL，
+    // 必须检查能否枚举出至少一个文件来判断目录是否真实存在
+    const char* firstFile = AAssetDir_getNextFileName(dir);
+    AAssetDir_close(dir);
+    return firstFile != nullptr ? 1 : 0;
+}
+
+// 列出 AAsset 目录下所有文件名（不递归）。
+// 返回文件名数组（每个 strdup 出来），调用者负责 free 每个字符串和数组本身。
+// outCount 写入文件数量。失败或空目录返回 nullptr。
+char** minorGemsAndroid_listAssetDirectory(const char* relativePath, int* outCount) {
+    if (outCount) *outCount = 0;
+    if (!gMgr || !relativePath) return nullptr;
+    const char* p = relativePath;
+    while (*p == '.' || *p == '/') p++;
+
+    AAssetDir* dir = AAssetManager_openDir(gMgr, p);
+    if (!dir) return nullptr;
+
+    // 先统计数量
+    int count = 0;
+    const char* name;
+    while ((name = AAssetDir_getNextFileName(dir)) != nullptr) {
+        count++;
+    }
+    AAssetDir_close(dir);
+
+    if (count == 0) return nullptr;
+
+    // 重新打开并复制每个文件名
+    dir = AAssetManager_openDir(gMgr, p);
+    if (!dir) return nullptr;
+
+    char** names = (char**) malloc(sizeof(char*) * count);
+    int i = 0;
+    while ((name = AAssetDir_getNextFileName(dir)) != nullptr && i < count) {
+        names[i++] = strdup(name);
+    }
+    AAssetDir_close(dir);
+
+    if (outCount) *outCount = i;
+    return names;
+}
+
 }  // extern "C"
 
 #endif // __ANDROID__
