@@ -659,8 +659,8 @@ void SpriteGL::draw( int inFrame,
                      char inFlipH ) {
     
     
-    prepareDraw( inFrame, inPosition, inScale, inLinearMagFilter, 
-                 inMipMapFilter
+    prepareDraw( inFrame, inPosition, inScale, inLinearMagFilter,
+                 inMipMapFilter,
                  inRotation, inFlipH );
 
     glVertexPointer( 2, GL_FLOAT, 0, squareVertices );

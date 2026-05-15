@@ -485,31 +485,62 @@ void drawTrianglesColor( int inNumTriangles, double inVertices[],
 
 void drawQuads( int inNumQuads, double inVertices[] ) {
     SpriteGL::setTexturingDisabled();
-    
+
     glEnableClientState( GL_VERTEX_ARRAY );
+#ifdef __ANDROID__
+    // GLES 1.x 不支持 GL_DOUBLE 顶点和 GL_QUADS：转 float + 三角形索引
+    int n = inNumQuads * 4;
+    float *fv = new float[ n * 2 ];
+    for( int i = 0; i < n * 2; i++ ) fv[i] = (float)inVertices[i];
+    int triN = inNumQuads * 6;
+    GLushort *idx = new GLushort[ triN ];
+    for( int q = 0; q < inNumQuads; q++ ) {
+        idx[q*6+0] = q*4+0; idx[q*6+1] = q*4+1; idx[q*6+2] = q*4+2;
+        idx[q*6+3] = q*4+0; idx[q*6+4] = q*4+2; idx[q*6+5] = q*4+3;
+    }
+    glVertexPointer( 2, GL_FLOAT, 0, fv );
+    glDrawElements( GL_TRIANGLES, triN, GL_UNSIGNED_SHORT, idx );
+    delete [] idx;
+    delete [] fv;
+#else
     glVertexPointer( 2, GL_DOUBLE, 0, inVertices );
-        
+
     glDrawArrays( GL_QUADS, 0, inNumQuads * 4 );
-    
+#endif
+
     glDisableClientState( GL_VERTEX_ARRAY );
     }
 
 
 
-void drawQuads( int inNumQuads, double inVertices[], 
+void drawQuads( int inNumQuads, double inVertices[],
                 float inVertexColors[] ) {
 
     SpriteGL::setTexturingDisabled();
 
     glEnableClientState( GL_VERTEX_ARRAY );
-    glVertexPointer( 2, GL_DOUBLE, 0, inVertices );
-    
-    
     glEnableClientState( GL_COLOR_ARRAY );
     glColorPointer( 4, GL_FLOAT, 0, inVertexColors );
-    
-        
+
+#ifdef __ANDROID__
+    // GLES 1.x 兼容：转 float + 三角形索引
+    int n = inNumQuads * 4;
+    float *fv = new float[ n * 2 ];
+    for( int i = 0; i < n * 2; i++ ) fv[i] = (float)inVertices[i];
+    int triN = inNumQuads * 6;
+    GLushort *idx = new GLushort[ triN ];
+    for( int q = 0; q < inNumQuads; q++ ) {
+        idx[q*6+0] = q*4+0; idx[q*6+1] = q*4+1; idx[q*6+2] = q*4+2;
+        idx[q*6+3] = q*4+0; idx[q*6+4] = q*4+2; idx[q*6+5] = q*4+3;
+    }
+    glVertexPointer( 2, GL_FLOAT, 0, fv );
+    glDrawElements( GL_TRIANGLES, triN, GL_UNSIGNED_SHORT, idx );
+    delete [] idx;
+    delete [] fv;
+#else
+    glVertexPointer( 2, GL_DOUBLE, 0, inVertices );
     glDrawArrays( GL_QUADS, 0, inNumQuads * 4 );
+#endif
 
     glDisableClientState( GL_VERTEX_ARRAY );
     glDisableClientState( GL_COLOR_ARRAY );
@@ -517,14 +548,22 @@ void drawQuads( int inNumQuads, double inVertices[],
 
 
 
-void drawTriangles( int inNumTriangles, double inVertices[], 
+void drawTriangles( int inNumTriangles, double inVertices[],
                     char inStrip, char inFan ) {
-    
+
     SpriteGL::setTexturingDisabled();
-    
+
     glEnableClientState( GL_VERTEX_ARRAY );
+#ifdef __ANDROID__
+    // GLES 1.x 不支持 GL_DOUBLE：转 float
+    int vertCount = inStrip || inFan ? (inNumTriangles + 2) : (inNumTriangles * 3);
+    float *fv = new float[ vertCount * 2 ];
+    for( int i = 0; i < vertCount * 2; i++ ) fv[i] = (float)inVertices[i];
+    glVertexPointer( 2, GL_FLOAT, 0, fv );
+#else
     glVertexPointer( 2, GL_DOUBLE, 0, inVertices );
-        
+#endif
+
     if( inStrip ) {
         glDrawArrays( GL_TRIANGLE_STRIP, 0, inNumTriangles + 2 );
         }
@@ -534,25 +573,34 @@ void drawTriangles( int inNumTriangles, double inVertices[],
     else {
         glDrawArrays( GL_TRIANGLES, 0, inNumTriangles * 3 );
         }
-    
-    
+
+#ifdef __ANDROID__
+    delete [] fv;
+#endif
+
     glDisableClientState( GL_VERTEX_ARRAY );
     }
 
 
 
-void drawTrianglesColor( int inNumTriangles, double inVertices[], 
+void drawTrianglesColor( int inNumTriangles, double inVertices[],
                          float inVertexColors[], char inStrip, char inFan ) {
 
     SpriteGL::setTexturingDisabled();
-    
+
     glEnableClientState( GL_VERTEX_ARRAY );
-    glVertexPointer( 2, GL_DOUBLE, 0, inVertices );
-    
-    
     glEnableClientState( GL_COLOR_ARRAY );
     glColorPointer( 4, GL_FLOAT, 0, inVertexColors );
-    
+
+#ifdef __ANDROID__
+    // GLES 1.x 不支持 GL_DOUBLE：转 float
+    int vertCount = inStrip || inFan ? (inNumTriangles + 2) : (inNumTriangles * 3);
+    float *fv = new float[ vertCount * 2 ];
+    for( int i = 0; i < vertCount * 2; i++ ) fv[i] = (float)inVertices[i];
+    glVertexPointer( 2, GL_FLOAT, 0, fv );
+#else
+    glVertexPointer( 2, GL_DOUBLE, 0, inVertices );
+#endif
 
     if( inStrip ) {
         glDrawArrays( GL_TRIANGLE_STRIP, 0, inNumTriangles + 2 );
@@ -563,6 +611,10 @@ void drawTrianglesColor( int inNumTriangles, double inVertices[],
     else {
         glDrawArrays( GL_TRIANGLES, 0, inNumTriangles * 3 );
         }
+
+#ifdef __ANDROID__
+    delete [] fv;
+#endif
 
     glDisableClientState( GL_VERTEX_ARRAY );
     glDisableClientState( GL_COLOR_ARRAY );
