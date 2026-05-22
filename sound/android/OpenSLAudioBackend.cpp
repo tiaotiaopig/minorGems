@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../SoundSpriteMixer.h"
+
 #define LOG_TAG "OneLifeAudio"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
@@ -24,14 +26,15 @@ namespace {
     SLPlayItf playItf = nullptr;
     SLAndroidSimpleBufferQueueItf bqItf = nullptr;
 
-    constexpr int kBufferFrames = 2048;  // 立体声帧数
+    constexpr int kBufferFrames = 1024;  // 立体声帧数（46ms @22050Hz）
     constexpr int kBufferSize = kBufferFrames * 2 * sizeof(int16_t);  // 字节数
     uint8_t buffers[2][kBufferSize];  // 双缓冲
     int currentBuffer = 0;
 
     void fillAndEnqueue() {
         uint8_t* buf = buffers[currentBuffer];
-        getSoundSamples(buf, kBufferSize);  // 游戏侧填充立体声 PCM
+        getSoundSamples(buf, kBufferSize);  // 背景音乐
+        SoundSpriteMixer_mix(buf, kBufferSize, getSampleRate());  // 叠加音效
         (*bqItf)->Enqueue(bqItf, buf, kBufferSize);
         currentBuffer ^= 1;
     }
@@ -132,6 +135,7 @@ extern "C" int minorGemsAndroid_audioStart() {
 }
 
 extern "C" void minorGemsAndroid_audioStop() {
+    SoundSpriteMixer_clearPlaying();
     if (playerObj) { (*playerObj)->Destroy(playerObj); playerObj = nullptr; }
     if (mixObj)    { (*mixObj)->Destroy(mixObj); mixObj = nullptr; }
     if (engineObj) { (*engineObj)->Destroy(engineObj); engineObj = nullptr; }
